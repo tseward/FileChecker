@@ -129,6 +129,11 @@ namespace FileChecker
                                     writer.WriteLine($"Error,{name},{string.Empty},{file.FullName},File names cannot exceed {_maxFileNameLength} characters.");
                                     i++;
                                 }
+                                else if (file.FullName.Length > _maxFileNameLength)
+                                {
+                                    writer.WriteLine($"Warning,{name},{string.Empty},{file.FullName},SharePoint Online has a limit of {_maxFileNameLength} which includes the parent URL. Consider flattening or reducing the folder structure path length.");
+                                    i++;
+                                }
                             }
                             break;
                         }
