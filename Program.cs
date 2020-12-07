@@ -1,28 +1,46 @@
 ﻿using System;
-
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+
 namespace FileChecker
 {
-
     class Program
     {
         /// <summary>
         /// Implements a new Regex Class for the specified regular expression.
         /// </summary>
-        private static Regex pattern = new Regex(@"[\\\|~#%*\:{}?/]+", RegexOptions.Compiled);
-
+        private static Regex _pattern = new Regex(@"[\\\|~#%*\:{}?/]+", RegexOptions.Compiled);
+        private static decimal _maxFileSizeInBytes = 107374182400;
+        private static int _maxFileNameLength = 400;
+        private static string _supportUrl = 
+            "https://support.microsoft.com/office/invalid-file-names-and-file-types-in-onedrive-and-sharepoint-64883a5d-228e-48f5-b3d2-eb39e07630fa";
+        private static string _debugDir = ""; //enter full path for testing
         static void Main(string[] args)
         {
             var dir = string.Empty;
 
-            if(args[0] == "-d")
+            if(Debugger.IsAttached && !string.IsNullOrEmpty(_debugDir))
             {
-                dir = args[1].Trim();
+                dir = _debugDir;
+            }
+            else if (Debugger.IsAttached && string.IsNullOrEmpty(_debugDir))
+            {
+                Console.WriteLine("Add a path to _debugDir prior to debugging.");
+                Environment.Exit(0);
+            }
+            else
+            {
+                if (args.Length < 2 || args.Length > 2)
+                {
+                    Console.WriteLine("Usage: FileChecker -d <path>.");
+                    Environment.Exit(0);
+                }
+                else if (args[0] == "-d".ToLower())
+                {
+                    dir = args[1].Trim();
+                }
             }
 
             Stream stream = null;
@@ -53,59 +71,62 @@ namespace FileChecker
                             {
                                 count++;
 
-                                string name = Path.GetFileName(file.Name);
-                                Match match = pattern.Match(name);
+                                var name = Path.GetFileName(file.Name);
+                                var match = _pattern.Match(name);
 
                                 Console.WriteLine(count + ".  " + name);
 
-                                var namespaces = new List<string>() { "Icon", ".lock", "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", "desktop.ini", "thumbs.db", "ehtumbs.db" };
-                                var extensions = new List<string>() { ".aspx", ".asmx", ".ascx", ".master", ".xap", ".swf", ".jar", ".xsf", ".htc", ".tmp", ".ds_store" };
+                                var namespaces = new List<string>() { "Icon", ".lock", "CON", "PRN", "AUX", "NUL", "COM1", 
+                                    "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", 
+                                    "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", "desktop.ini", "thumbs.db", "ehtumbs.db" };
+                                var extensions = new List<string>() { ".aspx", ".asmx", ".ascx", ".master", ".xap", ".swf", 
+                                    ".jar", ".xsf", ".htc", ".tmp", ".ds_store" };
 
-                                string extension = Path.GetFileName(file.Extension);
+                                var extension = Path.GetFileName(file.Extension);
 
                                 if (extensions.Contains(extension))
                                 {
-                                    writer.WriteLine("Error," + name + "," + extension + "," + file.FullName + ",Files cannot be of the following type " + extension + "With group-connected team sites, you cannot upload these files.");
+                                    writer.WriteLine($@"Error,{name},{extension},{file.FullName},Files cannot be of the following type {extension}. With Microsoft 365 Group-connected Team sites you cannot upload these files.");
                                     i++;
                                 }
                                 else if (name.Equals(namespaces))
                                 {
-                                    writer.WriteLine("Error," + name + "," + extension + "," + file.FullName + ",Filenames cannot be of the following type " + namespaces + " Also avoid these names followed immediately by an extension; for example, NUL.txt is not recommended.");
+                                    writer.WriteLine($@"Error,{name},{extension},{file.FullName},Filenames cannot be one of the following type {namespaces}. Also avoid these names followed immediately by an extension; for example NUL.txt is not recommended.");
                                     i++;
                                 }
                                 else if (match.Success)
                                 {
-                                    writer.WriteLine("Error," + name + "," + match + match.NextMatch() + "," + file.FullName + ",You cannot use the following character anywhere in a file name " + match + match.NextMatch() + ".");
+                                    writer.WriteLine($@"Error,{name},{match} {match.NextMatch()},{file.FullName},You cannot use the following character anywhere in a file name {match} {match.NextMatch()}.");
                                     i++;
                                 }
                                 else if (name.StartsWith("_", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    writer.WriteLine("Warning," + name + "," + "_" + "," + file.FullName + ",If you use an underscore character (_) at the beginning of a file name the file will be a hidden file when using Open in Explorer.");
+                                    writer.WriteLine($@"Warning,{name},_,{file.FullName},If you use an underscore character (_) at the beginning of a file name the file will be a hidden file when using Open in Explorer.");
                                     i++;
                                 }
                                 else if (name.Contains(".."))
                                 {
-                                    writer.WriteLine("Error," + name + "," + ".." + "," + file.FullName + ",You cannot use the period character consecutively in the middle of a file name.");
+                                    writer.WriteLine($@"Error,{name},..{file.FullName},You cannot use the period character consecutively in the middle of a file name.");
                                     i++;
                                 }
                                 else if (name.EndsWith(".", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    writer.WriteLine("Warning," + name + "," + "." + "," + file.FullName + ",Do not end a file or directory name with a period. Although the underlying file system may support such names, the Windows shell and user interface does not.");
-                                    i++;
+                                    writer.WriteLine($@"Warning,{name},.,{file.FullName},Do not end a file or directory name with a period. Although the underlying file system may support such names, the Windows shell and user interface does not.");
+                                   i++;
                                 }
                                 else if (file.Length.Equals(0))
                                 {
-                                    writer.WriteLine("Error," + name + "," + string.Empty + "," + file.FullName + ",Files cannot be empty.");
+                                    writer.WriteLine($"Error,{name},{string.Empty},{file.FullName},Files cannot be empty.");
                                     i++;
                                 }
-                                else if (file.Length > 107374182400)
+                                else if (file.Length > _maxFileSizeInBytes)
                                 {
-                                    writer.WriteLine("Error," + name + "," + string.Empty + "," + file.FullName + ",Files cannot be larger than 15GB.");
+                                    writer.WriteLine($"Error,{name},{string.Empty},{file.FullName},Files cannot be larger than {_maxFileSizeInBytes / 1024 / 1024 / 1024}GB.");
                                     i++;
                                 }
-                                else if (name.Length > 400)
+                                else if (name.Length > _maxFileNameLength)
                                 {
-                                    writer.WriteLine("Error," + name + "," + string.Empty + "," + file.FullName + ",File names cannot exceed 256 characters.");
+                                    writer.WriteLine($"Error,{name},{string.Empty},{file.FullName},File names cannot exceed {_maxFileNameLength} characters.");
                                     i++;
                                 }
                             }
@@ -118,16 +139,14 @@ namespace FileChecker
                         Console.WriteLine(Environment.NewLine);
                         Console.WriteLine(i + " issues discovered parsing " + count + " files.  Refer to FileCheckerResults.csv for additional details.");
                         Console.WriteLine(Environment.NewLine);
-                        Console.WriteLine("For additional information on file and folder name restrictions see also http://support.microsoft.com/kb/905231.");
-                        Console.WriteLine(Environment.NewLine);
-                        Console.WriteLine("To resolve these issues automatically download and run the Easy Fix tool from http://aka.ms/easyfix20150.");
+                        Console.WriteLine($"For additional information on file and folder name restrictions see also {_supportUrl}.");
                     }
                     else if (i == 0)
                     {
                         Console.WriteLine(Environment.NewLine);
                         Console.WriteLine(i + " issues discovered parsing " + count + " files.");
                         Console.WriteLine(Environment.NewLine);
-                        Console.WriteLine("For additional information on file and folder name restrictions see also http://support.microsoft.com/kb/905231.");
+                        Console.WriteLine($"For additional information on file and folder name restrictions see also {_supportUrl}.");
                     }
                 }
             }
