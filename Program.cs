@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -24,10 +23,10 @@ namespace FileChecker
             var argsList = args.ToList<string>();
             argsList.Sort();
 
-            //add '#' and '&'
+            //add '#' and '%'
             if(argsList.Contains("--legacy"))
             {
-                _pattern = new Regex(@"[\\\|*\:?/<>#&]+", RegexOptions.Compiled);
+                _pattern = new Regex(@"[\\\|*\:?/<>#%]+", RegexOptions.Compiled);
             }
 
             if(argsList.Contains("--append"))
