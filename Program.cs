@@ -10,7 +10,7 @@ namespace FileChecker
     {
         private static Regex _pattern = new Regex(@"[\\\|*\:?/<>]+", RegexOptions.Compiled);
         private static string _resultsFileName = "FileCheckerResults.csv";
-        private static decimal _maxFileSizeInBytes = 107374182400;
+        private static decimal _maxFileSizeInBytes = 268435456000;
         private static int _maxFileNameLength = 400;
         private static string _supportUrl = 
             "https://support.microsoft.com/office/invalid-file-names-and-file-types-in-onedrive-and-sharepoint-64883a5d-228e-48f5-b3d2-eb39e07630fa";
